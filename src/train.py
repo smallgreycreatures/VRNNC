@@ -13,12 +13,13 @@ from loss_function import loss as Loss
 from config import Config
 
 def load_dataset(batch_size):
-    train_dataset = datasets.MNIST(root='../data/',
+    """
+    train_dataset = datasets.MNIST(root='mnist_data/',
                                    train=True,
                                    transform=transforms.ToTensor(),
                                    download=True)
 
-    test_dataset = datasets.MNIST(root='../data/',
+    test_dataset = datasets.MNIST(root='mnist_data/',
                                   train=False,
                                   transform=transforms.ToTensor())
 
@@ -29,6 +30,23 @@ def load_dataset(batch_size):
     test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
                                               batch_size=batch_size,
                                               shuffle=False)
+    """
+    dataset = datasets.MNIST(root='mnist_data', train=True, download=True,
+        transform=transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,))
+    ]))
+    train_loader = torch.utils.data.DataLoader(
+        dataset, batch_size=batch_size,
+        num_workers=4, shuffle=True, pin_memory=True,
+    )
+
+    dataset2 = datasets.MNIST('mnist_data', train=False,
+                       transform=transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,))
+    ]))
+    test_loader = torch.utils.data.DataLoader(dataset2, batch_size=batch_size)
     return train_loader, test_loader
 
 def train(conf):
@@ -42,7 +60,7 @@ def train(conf):
     if conf.restore == True:
         net.load_state_dict(torch.load(conf.checkpoint_path, map_location='cuda:0'))
         print('Restore model from ' + conf.checkpoint_path)
-    optimizer = optim.Adam(net.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
     recon_loss = 0
     for epoch in range(1, conf.train_epoch + 1):
         training_loss = 0
@@ -53,7 +71,7 @@ def train(conf):
         for i, (data, target) in enumerate(train_loader):
             data = data.squeeze(1)
             data = (data / 255).to(device)
-            print(data.shape)
+            #print(data.shape)
             #data = data.to(device)
             package = model(data,target)
             #prior_means, prior_var, decoder_means, decoder_var, x_decoded = package
@@ -61,12 +79,12 @@ def train(conf):
             loss,rec_loss,kl_loss,class_loss = Loss(package, data)
             model.zero_grad()
             loss.backward()
-            _ = torch.nn.utils.clip_grad_norm_(net.parameters(), 5)
+            _ = torch.nn.utils.clip_grad_norm_(model.parameters(), 5)
             optimizer.step()
             training_loss = loss.item()
             recon_loss +=rec_loss.item()
             kld_loss += kl_loss.item()
-            classification_loss += classification_loss.item()
+            classification_loss += class_loss.item()
         print('Train Epoch: {} \t Loss: {:.6f}, KLD: {:.6f}, NLL: {:.6f}, Classfier: {:.6f},'.format(
                 epoch,
                 training_loss,
