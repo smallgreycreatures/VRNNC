@@ -1,2 +1,2 @@
 # VRNNC
-A Varitaional Recurrent Neural Network Classifier
+A Variational Recurrent Neural Network Classifier
