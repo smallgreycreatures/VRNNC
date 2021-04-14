@@ -150,8 +150,30 @@ def load_dataset(batch_size,ground_path,new_data,w=380,sub_sample=4,cols=72,trai
 
     return train_dataloader, test_dataloader, ho_dataloader
 
+def test(model,test_loader):
+    correct = 0
+    is_correct = np.zeros((512,380))
+    with torch.no_grad():
+        for (data,target) in (test_loader):
+            package = model.forward(data)
+            
+            for i,predicted in enumerate((package[-2])):
+                p = torch.squeeze(predicted)
+                e = torch.eq(target,p)
+                time_step_np = e.numpy()
+                if len(time_step_np < 512):
+                    time_step_np = np.append(time_step_np,np.zeros(512-len(time_step_np)))
+                is_correct[:,i] = time_step_np
+
+            print(np.sum(is_correct,axis=1).shape)
+            correct += np.sum(np.sum(is_correct,axis=1))
+        print(correct)
+    correct = correct/380
+    print("Test set: {:.6f}/520 correct.".format(correct))
+    return correct
+
 def train(conf):
-    ground_path='/Users/corytrevor/Documents/Skola/KTH/EE/Master/exjobb/Code/VRNNC/data/'
+    ground_path='/Users/corytrevor/Documents/Skola/KTH/EE/Master/exjobb/Code/VRNNC/data/numpy_neuro_data/'
 
     train_loader, test_loader,ho_loader = load_dataset(512,ground_path,False)
     print("Data locked and loaded!")
@@ -180,6 +202,8 @@ def train(conf):
             #print(data.shape)
             #data = data.to(device)
             package = model(data)
+            print(package[-2][0].shape)
+            print(len(package[-2]))
             #prior_means, prior_var, decoder_means, decoder_var, x_decoded = package
             #print(len(prior_means))
             loss,rec_loss,kl_loss,class_loss = Loss(package, data, target.long())
@@ -198,6 +222,7 @@ def train(conf):
                 kld_loss,
                 classification_loss))
 
+        test(model,test_loader)
         if epoch % conf.save_every == 0:
             torch.save(model.state_dict(), 'Epoch_' + str(epoch + 1) + '.pth')
 
@@ -215,13 +240,7 @@ def generating(conf):
         x_decoded = model.module.sampling(sequence_length, device)
         x_decoded = x_decoded.cpu().numpy()
 
-def classify(conf):
-    model = VRNN(conf.x_dim, conf.h_dim, conf.z_dim)
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    model.to(device)
-    model = torch.nn.DataParallel(model)
-    model.load_state_dict(torch.load(conf.checkpoint_path, map_location='cuda:0'))
-    print('Restore model from ' + conf.checkpoint_path)
+
 
 
 
@@ -229,7 +248,6 @@ if __name__ == '__main__':
 
     conf = Config()
     train(conf)
-    generating(conf)
 
 
 

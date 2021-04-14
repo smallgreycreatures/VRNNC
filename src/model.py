@@ -129,6 +129,7 @@ class VRNN(nn.Module):
         decoder_means_all = []
         all_classified = []
         all_pred_labels = []
+        all_z = []
         for time in range(x.shape[1]):
             # feature extractor:
             phi_x = self.x_fea(x[:, time, :])
@@ -166,9 +167,10 @@ class VRNN(nn.Module):
 
             #classifier
             all_classified.append(classified)
-            pred_label = classified.data.max(1, keepdim=True)[1]
+            pred_label = classified.argmax(dim=1,keepdim=True)
+            
             all_pred_labels.append(pred_label)
-        return [prior_means_all, prior_var_all, encoder_means_all, encoder_var_all, decoder_means_all,all_classified,all_pred_labels]
+        return [prior_means_all, prior_var_all, encoder_means_all, encoder_var_all, decoder_means_all,all_classified,all_pred_labels,all_z]
 
     def sampling(self, seq_len, device):
 
@@ -194,6 +196,10 @@ class VRNN(nn.Module):
             sample[t] = decoder_means_.detach()
 
         return sample
+
+    def classify(self,z_sampled):
+        classified = F.log_softmax(self.classifier(z_sampled),dim=1)
+        return classified
 
     def reparametrizing(self, *args):
         z_mean, z_log_var = args
