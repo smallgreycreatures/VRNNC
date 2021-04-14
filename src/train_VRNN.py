@@ -220,13 +220,28 @@ def classify(conf):
     model.load_state_dict(torch.load(conf.checkpoint_path, map_location='cuda:0'))
     print('Restore model from ' + conf.checkpoint_path)
 
+def generate_sequences():
+    model = VRNN(conf.x_dim, conf.h_dim, conf.z_dim)
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    model.load_state_dict(torch.load("checkpoints/2021-04-14-VRNN_EEG_Epoch_301.pth",map_location=torch.device('cpu')))
+    train_data = np.load(ground_path+"train_data.npy")
+    train_labels = np.load(ground_path+"train_labels.npy")
 
+    disgust_data = train_data[2489:]
+    decoded_data = np.zeros((disgust_data.shape))
+    with torch.no_grad():
+        package = model.forward(disgust_data)
+        for i, time_period in enumerate(package[-1]):
+            decoded_data[:,i,:] = time_period
+        with open('decoded_data.npy', 'wb') as f:
+            np.save(f,decoded_data)
 
 if __name__ == '__main__':
 
     conf = Config()
-    train(conf)
-    generating(conf)
+    #train(conf)
+    generate_sequences()
 
 
 
