@@ -106,7 +106,7 @@ class VRNN(nn.Module):
 
         #classification   
         self.classifier = nn.Sequential(
-        nn.Linear(h_dim*2,128),
+        nn.Linear(z_dim,128),
         nn.ReLU(),
         nn.Linear(128,64),
         nn.ReLU(),
@@ -115,7 +115,7 @@ class VRNN(nn.Module):
         # using the recurrence equation to update its hidden state
         self.rnn = nn.GRUCell(h_dim*2, h_dim)
 
-    def forward(self, x,labels):
+    def forward(self, x):
         """
 
         :param x: shape of [frame, batch, features]
@@ -127,7 +127,8 @@ class VRNN(nn.Module):
         encoder_means_all = []
         encoder_var_all = []
         decoder_means_all = []
-        classifier_loss = 0
+        all_classified = []
+        all_pred_labels = []
         for time in range(x.shape[1]):
             # feature extractor:
             phi_x = self.x_fea(x[:, time, :])
@@ -149,7 +150,9 @@ class VRNN(nn.Module):
 
             phi_z = self.z_fea(z_sampled)
             decoder_fea_ = self.decoder_fea(torch.cat([phi_z, h], dim=1))
-            predicted = F.log_softmax(self.classifier(torch.cat([phi_z, h], dim=1)),dim=1)
+            #print(self.classifier(z_sampled).shape)
+            classified = F.log_softmax(self.classifier(z_sampled),dim=1)
+            #print(predicted.shape)
             decoder_means_ = self.decoder_mean(decoder_fea_)
             decoder_var_ = self.decoder_var(decoder_fea_)
 
@@ -160,8 +163,12 @@ class VRNN(nn.Module):
             decoder_means_all.append(decoder_means_)
             # rnn
             h = self.rnn(torch.cat([phi_x, phi_z], dim=1), h)
-            classifier_loss+= F.nll_loss(predicted,labels)
-        return [prior_means_all, prior_var_all, encoder_means_all, encoder_var_all, decoder_means_all,classifier_loss]
+
+            #classifier
+            all_classified.append(classified)
+            pred_label = classified.data.max(1, keepdim=True)[1]
+            all_pred_labels.append(pred_label)
+        return [prior_means_all, prior_var_all, encoder_means_all, encoder_var_all, decoder_means_all,all_classified,all_pred_labels]
 
     def sampling(self, seq_len, device):
 
