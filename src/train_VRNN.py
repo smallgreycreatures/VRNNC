@@ -234,7 +234,7 @@ def generate_sequences():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model.to(device)
     model = torch.nn.DataParallel(model)
-    model.load_state_dict(torch.load("checkpoints/2021-04-14-VRNN_EEG_Epoch_301.pth",map_location=torch.device('cpu')))
+    model.load_state_dict(torch.load("checkpoints/VRNN_z8_191.pth",map_location=torch.device('cpu')))
     train_data = np.load(ground_path+"train_data.npy")
     train_labels = np.load(ground_path+"train_labels.npy")
 
@@ -242,9 +242,9 @@ def generate_sequences():
     decoded_data = np.zeros((disgust_data.shape))
     with torch.no_grad():
         package = model.forward(disgust_data)
-        for i, time_period in enumerate(package[-1]):
+        for i, time_period in enumerate(package[-2]):
             decoded_data[:,i,:] = time_period
-        with open('sequence.npy', 'wb') as f:
+        with open('sequence_8.npy', 'wb') as f:
             np.save(f,decoded_data)
 
 def get_dec_means():
@@ -254,16 +254,16 @@ def get_dec_means():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model.to(device)
     model = torch.nn.DataParallel(model)
-    model.load_state_dict(torch.load("checkpoints/2021-04-14-VRNN_EEG_Epoch_301.pth",map_location=torch.device('cpu')))
+    model.load_state_dict(torch.load("checkpoints/VRNN_z8_191.pth",map_location=torch.device('cpu')))
     train_data = np.load(ground_path+"train_data.npy")
     train_labels = np.load(ground_path+"train_labels.npy")
     disgust_data = torch.from_numpy(train_data).float()
-    decoded_data = np.zeros((disgust_data.shape[0],380,16))
+    decoded_data = np.zeros((disgust_data.shape[0],380,8))
     with torch.no_grad():
         package = model.forward(disgust_data)
         for i, time_period in enumerate(package[2]):
             decoded_data[:,i,:] = time_period
-        with open('dec_means_train_data.npy', 'wb') as f:
+        with open('dec_means_train_data_8.npy', 'wb') as f:
             np.save(f,decoded_data)
     
 def get_z():
@@ -273,12 +273,12 @@ def get_z():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model.to(device)
     model = torch.nn.DataParallel(model)
-    model.load_state_dict(torch.load("checkpoints/2021-04-14-VRNN_EEG_Epoch_301.pth",map_location=torch.device('cpu')))
+    model.load_state_dict(torch.load("checkpoints/VRNN_z8_191.pth",map_location=torch.device('cpu')))
     train_data = np.load(ground_path+"train_data.npy")
     train_labels = np.load(ground_path+"train_labels.npy")
 
     disgust_data = torch.from_numpy(train_data).float()
-    decoded_data = np.zeros((disgust_data.shape[0],disgust_data.shape[1],16))
+    decoded_data = np.zeros((disgust_data.shape[0],disgust_data.shape[1],8))
     with torch.no_grad():
         package = model.forward(disgust_data)
         for i, time_period in enumerate(package[-1]):
@@ -292,7 +292,7 @@ if __name__ == '__main__':
     conf = Config()
     train(conf)
     #generate_sequences()
-    get_z()
+    #get_z()
     #get_dec_means()
 
 
