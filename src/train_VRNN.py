@@ -201,7 +201,6 @@ def train(conf):
                 recon_loss,
                 kld_loss))
         losses[epoch-1] = np.array([training_loss,recon_loss,kld_loss])
-        print(losses)
         if epoch % conf.save_every == 0:
             torch.save(model.state_dict(), 'Epoch_' + str(epoch + 1) + '.pth')
     with open('losses.npy', 'wb') as f:
