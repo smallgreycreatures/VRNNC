@@ -9,7 +9,7 @@ import torch
 
 def loss(package, x):
 
-    prior_means, prior_var, decoder_means, decoder_var, x_decoded = package
+    prior_means, prior_var, decoder_means, decoder_var, x_decoded,_ = package
     loss = 0.
     classification_loss = 0
     kld_loss_total = 0

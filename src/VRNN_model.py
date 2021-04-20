@@ -119,6 +119,7 @@ class VRNN(nn.Module):
         encoder_means_all = []
         encoder_var_all = []
         decoder_means_all = []
+        all_z = []
         for time in range(x.shape[1]):
             # feature extractor:
             phi_x = self.x_fea(x[:, time, :])
@@ -150,11 +151,12 @@ class VRNN(nn.Module):
             encoder_means_all.append(encoder_means_)
             encoder_var_all.append(encoder_var_)
             decoder_means_all.append(decoder_means_)
+            all_z.append(z_sampled)
             # rnn
             h = self.rnn(torch.cat([phi_x, phi_z], dim=1), h)
 
             #classifier
-        return [prior_means_all, prior_var_all, encoder_means_all, encoder_var_all, decoder_means_all]
+        return [prior_means_all, prior_var_all, encoder_means_all, encoder_var_all, decoder_means_all,all_z]
 
     def sampling(self, seq_len, device):
 
