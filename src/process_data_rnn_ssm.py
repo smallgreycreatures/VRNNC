@@ -2,7 +2,7 @@ import pickle
 import numpy as np
 import os, os.path
 
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
+#from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 def load_data_help(prev_stop,stop,path,final_data,c=3,sub_sample=1,w=60):
     all_data = np.zeros((stop,84*3))
