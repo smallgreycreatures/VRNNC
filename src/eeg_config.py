@@ -8,7 +8,7 @@ class Config(object):
         # define some configures here
         self.x_dim = 72
         self.h_dim = 100
-        self.z_dim = 16
+        self.z_dim = 8
         self.train_epoch = 3
         self.save_every = 10
         self.batch_size = 512
