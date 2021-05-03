@@ -136,8 +136,8 @@ def load_dataset(batch_size,ground_path,new_data,w=380,sub_sample=4,cols=72,trai
         train_labels = np.load(ground_path+"train_labels.npy")
         test_data = np.load(ground_path+"test_data.npy")
         test_labels = np.load(ground_path+"test_labels.npy")
-        hold_out_person_data = np.load(ground_path+"hold_out_person_data.npy")
-        hold_out_person_labels = np.load(ground_path+"hold_out_person_labels.npy")
+        hold_out_person_data = np.load(ground_path+"test_data.npy")
+        hold_out_person_labels = np.load(ground_path+"test_labels.npy")
  
     train_dataset = TensorDataset(torch.Tensor(train_data),torch.Tensor(train_labels))
     train_dataloader = DataLoader(train_dataset,batch_size=512,shuffle=True)
