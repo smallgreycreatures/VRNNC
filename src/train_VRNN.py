@@ -227,15 +227,15 @@ def classify(conf):
     model.load_state_dict(torch.load(conf.checkpoint_path, map_location='cuda:0'))
     print('Restore model from ' + conf.checkpoint_path)
 
-def generate_sequences():
-    ground_path='/Users/corytrevor/Documents/Skola/KTH/EE/Master/exjobb/Code/VRNNC/data/numpy_neuro_data/'
+def generate_sequences(conf):
+    ground_path=conf.ground_path_cpu
 
     model = VRNN(conf.x_dim, conf.h_dim, conf.z_dim)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model.to(device)
     model = torch.nn.DataParallel(model)
-    model.load_state_dict(torch.load("checkpoints/VRNN_z8_191.pth",map_location=torch.device('cpu')))
-    train_data = np.load(ground_path+"train_data.npy")
+    model.load_state_dict(torch.load("checkpoints/VRNN_all_data_04-23-Epoch_231.pth",map_location=torch.device('cpu')))
+    train_data = np.load(ground_path+"train_data.npy")[:498]
     train_labels = np.load(ground_path+"train_labels.npy")
 
     disgust_data = torch.from_numpy(train_data).float()
@@ -244,56 +244,57 @@ def generate_sequences():
         package = model.forward(disgust_data)
         for i, time_period in enumerate(package[-2]):
             decoded_data[:,i,:] = time_period
-        with open('sequence_8.npy', 'wb') as f:
+        with open('ple_all_data.npy', 'wb') as f:
             np.save(f,decoded_data)
 
-def get_dec_means():
-    ground_path='/Users/corytrevor/Documents/Skola/KTH/EE/Master/exjobb/Code/VRNNC/data/numpy_neuro_data/'
+def get_dec_means(conf):
+    ground_path=conf.ground_path_cpu
 
     model = VRNN(conf.x_dim, conf.h_dim, conf.z_dim)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model.to(device)
     model = torch.nn.DataParallel(model)
-    model.load_state_dict(torch.load("checkpoints/VRNN_z8_191.pth",map_location=torch.device('cpu')))
+    model.load_state_dict(torch.load("checkpoints/VRNN_all_data_04-23-Epoch_231.pth",map_location=torch.device('cpu')))
     train_data = np.load(ground_path+"train_data.npy")
     train_labels = np.load(ground_path+"train_labels.npy")
     disgust_data = torch.from_numpy(train_data).float()
-    decoded_data = np.zeros((disgust_data.shape[0],380,8))
+    decoded_data = np.zeros((disgust_data.shape[0],384,16))
     with torch.no_grad():
         package = model.forward(disgust_data)
         for i, time_period in enumerate(package[2]):
             decoded_data[:,i,:] = time_period
-        with open('dec_means_train_data_8.npy', 'wb') as f:
+        with open('dec_means_train_data_al.npy', 'wb') as f:
             np.save(f,decoded_data)
     
-def get_z():
-    ground_path='/Users/corytrevor/Documents/Skola/KTH/EE/Master/exjobb/Code/VRNNC/data/numpy_neuro_data/'
+def get_z(conf):
+    ground_path=conf.ground_path_cpu
 
     model = VRNN(conf.x_dim, conf.h_dim, conf.z_dim)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model.to(device)
     model = torch.nn.DataParallel(model)
-    model.load_state_dict(torch.load("checkpoints/VRNN_z8_191.pth",map_location=torch.device('cpu')))
-    train_data = np.load(ground_path+"train_data.npy")
-    train_labels = np.load(ground_path+"train_labels.npy")
-
+    model.load_state_dict(torch.load("checkpoints/2021-04-14-VRNN_EEG_Epoch_301.pth",map_location=torch.device('cpu')))
+    train_data = np.load(ground_path+"hold_out_person_data.npy")
+    train_labels = np.load(ground_path+"hold_out_person_labels.npy")
+    print(train_data.shape)
+    print(train_labels.shape)
     disgust_data = torch.from_numpy(train_data).float()
-    decoded_data = np.zeros((disgust_data.shape[0],disgust_data.shape[1],8))
+    decoded_data = np.zeros((disgust_data.shape[0],disgust_data.shape[1],16))
     with torch.no_grad():
         package = model.forward(disgust_data)
         for i, time_period in enumerate(package[-1]):
             #print(decoded_data.shape)
             #print(time_period.shape)
             decoded_data[:,i,:] = time_period
-        with open('z.npy', 'wb') as f:
+        with open('z_ho_test.npy', 'wb') as f:
             np.save(f,decoded_data)
 if __name__ == '__main__':
 
     conf = Config()
     train(conf)
-    #generate_sequences()
-    #get_z()
-    #get_dec_means()
+    #generate_sequences(conf)
+    #get_z(conf)
+    #get_dec_means(conf)
 
 
 
