@@ -205,19 +205,36 @@ def train(conf):
             torch.save(model.state_dict(), 'Epoch_' + str(epoch + 1) + '.pth')
     with open('losses.npy', 'wb') as f:
         np.save(f,losses)
-def generating(conf):
+def generating(conf,z_n,val,change_z):
 
     model = VRNN(conf.x_dim, conf.h_dim, conf.z_dim)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model.to(device)
     model = torch.nn.DataParallel(model)
-    model.load_state_dict(torch.load(conf.checkpoint_path, map_location='cuda:0'))
-    print('Restore model from ' + conf.checkpoint_path)
-
+    model.load_state_dict(torch.load("checkpoints/e_6.pth",map_location=torch.device('cpu')))
+    #print('Restore model')
+    model.module.set_gen_vals(z_n,val,change_z)
     with torch.no_grad():
-        sequence_length = 380
+        sequence_length = 384
         x_decoded = model.module.sampling(sequence_length, device)
         x_decoded = x_decoded.cpu().numpy()
+    
+    return x_decoded
+
+def decode_z(conf,z,z_n,val,change_z):
+    model = VRNN(conf.x_dim, conf.h_dim, conf.z_dim)
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    model = torch.nn.DataParallel(model)
+    model.load_state_dict(torch.load("checkpoints/e_561_4_100_1000.pth",map_location=torch.device('cpu')))
+    #print('Restore model')
+    model.module.set_gen_vals(z_n,val,change_z)
+    with torch.no_grad():
+        sequence_length = 384
+        x_decoded = model.module.decode_z(torch.from_numpy(z).float(), device)
+        x_decoded = x_decoded.cpu().numpy()
+    
+    return x_decoded
 
 def classify(conf):
     model = VRNN(conf.x_dim, conf.h_dim, conf.z_dim)
@@ -228,15 +245,15 @@ def classify(conf):
     print('Restore model from ' + conf.checkpoint_path)
 
 def generate_sequences(conf):
-    ground_path=conf.ground_path_cpu
+    #ground_path=conf.ground_path_cpu
 
     model = VRNN(conf.x_dim, conf.h_dim, conf.z_dim)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model.to(device)
     model = torch.nn.DataParallel(model)
-    model.load_state_dict(torch.load("checkpoints/VRNN_all_data_04-23-Epoch_231.pth",map_location=torch.device('cpu')))
-    train_data = np.load(ground_path+"train_data.npy")[:498]
-    train_labels = np.load(ground_path+"train_labels.npy")
+    model.load_state_dict(torch.load("checkpoints/e_600_16_10.pth",map_location=torch.device('cpu')))
+    train_data = np.load('/Users/corytrevor/Documents/Skola/KTH/EE/Master/exjobb/Code/VRNNC/src/ple_data_256.npy')
+    #train_labels = np.load(ground_path+"train_labels.npy")
 
     disgust_data = torch.from_numpy(train_data).float()
     decoded_data = np.zeros((disgust_data.shape))
@@ -244,7 +261,8 @@ def generate_sequences(conf):
         package = model.forward(disgust_data)
         for i, time_period in enumerate(package[-2]):
             decoded_data[:,i,:] = time_period
-        with open('ple_all_data.npy', 'wb') as f:
+            #print(time_period)
+        with open('synt_ple_data_16_10.npy', 'wb') as f:
             np.save(f,decoded_data)
 
 def get_dec_means(conf):
@@ -254,16 +272,16 @@ def get_dec_means(conf):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model.to(device)
     model = torch.nn.DataParallel(model)
-    model.load_state_dict(torch.load("checkpoints/VRNN_all_data_04-23-Epoch_231.pth",map_location=torch.device('cpu')))
-    train_data = np.load(ground_path+"train_data.npy")
+    model.load_state_dict(torch.load("checkpoints/e_600_4_100.pth",map_location=torch.device('cpu')))
+    train_data = np.load('/Users/corytrevor/Documents/Skola/KTH/EE/Master/exjobb/Code/VRNNC/src/dis_test_data_256.npy')
     train_labels = np.load(ground_path+"train_labels.npy")
     disgust_data = torch.from_numpy(train_data).float()
-    decoded_data = np.zeros((disgust_data.shape[0],384,16))
+    decoded_data = np.zeros((disgust_data.shape[0],768,4))
     with torch.no_grad():
         package = model.forward(disgust_data)
         for i, time_period in enumerate(package[2]):
             decoded_data[:,i,:] = time_period
-        with open('dec_means_train_data_al.npy', 'wb') as f:
+        with open('dec_means_test_data_dis.npy', 'wb') as f:
             np.save(f,decoded_data)
     
 def get_z(conf):
@@ -273,26 +291,24 @@ def get_z(conf):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model.to(device)
     model = torch.nn.DataParallel(model)
-    model.load_state_dict(torch.load("checkpoints/2021-04-14-VRNN_EEG_Epoch_301.pth",map_location=torch.device('cpu')))
-    train_data = np.load(ground_path+"hold_out_person_data.npy")
-    train_labels = np.load(ground_path+"hold_out_person_labels.npy")
-    print(train_data.shape)
-    print(train_labels.shape)
+
+    model.load_state_dict(torch.load("checkpoints/e_561_4_100_1000.pth",map_location=torch.device('cpu')))
+    train_data = np.load('/Users/corytrevor/Documents/Skola/KTH/EE/Master/exjobb/Code/VRNNC/src/dis_data_256.npy')
     disgust_data = torch.from_numpy(train_data).float()
-    decoded_data = np.zeros((disgust_data.shape[0],disgust_data.shape[1],16))
+    decoded_data = np.zeros((disgust_data.shape[0],disgust_data.shape[1],4))
     with torch.no_grad():
         package = model.forward(disgust_data)
         for i, time_period in enumerate(package[-1]):
             #print(decoded_data.shape)
             #print(time_period.shape)
             decoded_data[:,i,:] = time_period
-        with open('z_ho_test.npy', 'wb') as f:
+        with open('z_dis_4_100_1000.npy', 'wb') as f:
             np.save(f,decoded_data)
 if __name__ == '__main__':
 
     conf = Config()
-    train(conf)
-    #generate_sequences(conf)
+    #train(conf)
+    generate_sequences(conf)
     #get_z(conf)
     #get_dec_means(conf)
 

@@ -16,6 +16,10 @@ class VRNN(nn.Module):
         self.x_dim = x_dim
         self.h_dim = h_dim
         self.z_dim = z_dim
+
+        self.val = 0
+        self.z_n = 0
+        self.change_z = False
         # feature extractors of x and z
         # paper: We found that these feature extractors are crucial for learnting complex sequences
         # paper: 'all of phi_t have four hidden layers using rectificed linear units ReLu'
@@ -161,7 +165,7 @@ class VRNN(nn.Module):
     def sampling(self, seq_len, device):
 
         sample = torch.zeros(seq_len, self.x_dim, device=device)
-        h = torch.zeros(1, self.h_dim, device=device)
+        h = torch.ones(1, self.h_dim, device=device)
 
         for t in range(seq_len):
             # prior
@@ -171,6 +175,10 @@ class VRNN(nn.Module):
 
             # decoder
             z_t = self.reparametrizing(prior_means_, prior_var_)
+            if self.change_z:
+                z_t[:,self.z_n] = self.val
+            #print(z_t)
+            #z_t = torch.ones(16).view(1,16)
             phi_z_t = self.z_fea(z_t)
             decoder_fea_ = self.decoder_fea(torch.cat([phi_z_t, h], dim=1))
             decoder_means_ = self.decoder_mean(decoder_fea_)
@@ -183,6 +191,40 @@ class VRNN(nn.Module):
 
         return sample
 
+    def decode_z(self, z, device):
+
+        sample = torch.zeros(z.shape[0],z.shape[1], self.x_dim, device=device)
+        h = torch.ones(z.shape[0], self.h_dim, device=device)
+
+        for t in range(z.shape[1]):
+            # prior
+            prior_fea_ = self.prior_fea(h)
+            prior_means_ = self.prior_mean(prior_fea_)
+            prior_var_ = self.prior_var(prior_fea_)
+
+            # decoder
+            z_t = z[:,t,:]#self.reparametrizing(prior_means_, prior_var_)
+            if self.change_z:
+                z_t[:,self.z_n] = self.val
+            #print(torch.max(z_t))
+            #print(torch.min(z_t))
+            #z_t = torch.ones(16).view(1,16)
+            phi_z_t = self.z_fea(z_t)
+            decoder_fea_ = self.decoder_fea(torch.cat([phi_z_t, h], dim=1))
+            decoder_means_ = self.decoder_mean(decoder_fea_)
+
+            phi_x_t = self.x_fea(decoder_means_)
+            # rnn
+            h = self.rnn(torch.cat([phi_x_t, phi_z_t], dim=1), h)
+
+            sample[:,t,:] = decoder_means_.detach()
+
+        return sample
+
+    def set_gen_vals(self, z_n,val,change_z):
+        self.z_n = z_n
+        self.val = val
+        self.change_z = change_z
     def reparametrizing(self, *args):
         z_mean, z_log_var = args
         epsilon = torch.rand_like(z_mean, device=z_mean.device)
